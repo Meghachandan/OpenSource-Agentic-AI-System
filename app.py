@@ -21,11 +21,23 @@ llm = ChatGroq(
     streaming=True,
 )
 
-wiki_wrapper = WikipediaAPIWrapper(
-    top_k_results=1,
-    doc_content_chars_max=300,
-)
+from langchain.tools import Tool
+import wikipedia
 
+wikipedia.set_lang("en")
+
+def wikipedia_search(query):
+    try:
+        page = wikipedia.page(query, auto_suggest=True)
+        return page.summary[:500]
+    except Exception as e:
+        return f"Wikipedia Error: {str(e)}"
+
+wiki = Tool(
+    name="Wikipedia",
+    func=wikipedia_search,
+    description="Search Wikipedia for general knowledge."
+)
 wiki = WikipediaQueryRun(api_wrapper=wiki_wrapper)
 
 arxiv_wrapper = ArxivAPIWrapper(
@@ -33,8 +45,19 @@ arxiv_wrapper = ArxivAPIWrapper(
     doc_content_chars_max=300,
 )
 
-arxiv = ArxivQueryRun(api_wrapper=arxiv_wrapper)
+from langchain.tools import Tool
 
+def arxiv_search(query):
+    try:
+        return ArxivQueryRun(api_wrapper=arxiv_wrapper).run(query)
+    except Exception as e:
+        return f"ArXiv Error: {str(e)}"
+
+arxiv = Tool(
+    name="Arxiv",
+    func=arxiv_search,
+    description="Search research papers from ArXiv."
+)
 search = DuckDuckGoSearchRun(name="Search")
 
 tools = [search, wiki, arxiv]
